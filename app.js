@@ -286,14 +286,6 @@ class InsuranceAIApp {
         });
 
         saveApiKeyBtn.addEventListener('click', () => {
-            const apiKey = document.getElementById('apiKeyInput').value.trim();
-            const provider = aiService.getProvider();
-
-            // Save API Key
-            if (apiKey) {
-                aiService.setApiKey(apiKey);
-            }
-
             // Save product focus
             const productFocusSelect = document.getElementById('productFocus');
             const selectedProducts = Array.from(productFocusSelect.selectedOptions).map(opt => opt.value);
@@ -305,12 +297,11 @@ class InsuranceAIApp {
             const trainingData = document.getElementById('productTraining').value;
             aiService.setProductTraining(trainingData);
 
-            if (apiKey) {
-                this.showToast(`บันทึกการตั้งค่าสำเร็จ!`, 'success');
-                this.closeModals();
-            } else {
-                this.showToast('กรุณาใส่ API Key', 'error');
-            }
+            this.showToast(`บันทึกการตั้งค่าสำเร็จ!`, 'success');
+            this.closeModals();
+
+            // Sync product selector buttons
+            this.syncProductSelector();
         });
 
         // History modal

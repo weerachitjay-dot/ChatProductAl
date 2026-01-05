@@ -37,6 +37,10 @@
         </div>
 
         <div class="header-actions">
+          <a href="admin.html" class="btn btn-ghost" aria-label="Admin">
+            <span class="icon">🔐</span>
+            <span>Admin</span>
+          </a>
           <button id="settingsBtn" class="btn btn-ghost" aria-label="Settings">
             <span class="icon">⚙️</span>
             <span>ตั้งค่า</span>
@@ -203,16 +207,16 @@
         </div>
 
         <div class="form-group">
-          <label for="apiKeyInput">API Key</label>
-          <textarea id="apiKeyInput" rows="3"
-            placeholder="ใส่ API Keys (แยกบรรทัดถ้ามีหลายตัว)&#10;sk-...&#10;sk-...&#10;sk-..."></textarea>
-          <p class="help-text" id="apiKeyHelp">
-            💡 สามารถใส่หลาย API Keys ได้ (แยกบรรทัด) เพื่อป้องกัน Rate Limit
-            ✨ รับ Groq API Key ฟรี:
-            <a href="https://console.groq.com/keys" target="_blank" rel="noopener">
-              console.groq.com/keys
+          <label>🔐 API Key</label>
+          <div
+            style="background: var(--color-bg-tertiary); padding: 1rem; border-radius: 8px; border: 1px solid var(--color-border);">
+            <p style="margin: 0 0 0.5rem 0; color: var(--color-text-secondary);">API Key ถูกจัดการโดย Admin</p>
+            <p id="apiKeyStatus" style="margin: 0 0 1rem 0; font-weight: 600;">กำลังตรวจสอบ...</p>
+            <a href="admin.html" class="btn btn-secondary" style="text-decoration: none;">
+              <span class="icon">🔐</span>
+              <span>ไปหน้า Admin</span>
             </a>
-          </p>
+          </div>
         </div>
 
         <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--color-border);">

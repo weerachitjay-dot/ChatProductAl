@@ -56,12 +56,19 @@ class AIService {
         localStorage.setItem(`${provider}_key_index`, '0');
     }
 
-    // Get current API key
+    // Get current API key (with expiry check)
     getApiKey() {
         const provider = this.getProvider();
         const keysJson = localStorage.getItem(`${provider}_api_key`);
 
         if (!keysJson) return null;
+
+        // Check expiry time
+        const expiryTime = parseInt(localStorage.getItem('admin_api_expiry') || '0');
+        if (expiryTime > 0 && Date.now() > expiryTime) {
+            console.warn('⚠️ API Key หมดอายุแล้ว กรุณาให้ Admin กรอกใหม่');
+            return null;
+        }
 
         const keys = JSON.parse(keysJson);
         if (!Array.isArray(keys) || keys.length === 0) return null;
@@ -314,9 +321,21 @@ class AIService {
                 }
             }
 
-            // All keys exhausted or other error
+            // If rate limit and all keys exhausted, try fallback to another provider
             if (isRateLimit) {
-                throw new Error(`❌ Rate limit reached. All ${this.getAllApiKeys().length} API keys are exhausted. Please try again later or switch to a different AI provider in Settings.`);
+                const currentProvider = this.getProvider();
+                const fallbackProvider = currentProvider === 'groq' ? 'gemini' : 'groq';
+
+                // Check if fallback provider has keys
+                const fallbackKeys = JSON.parse(localStorage.getItem(`${fallbackProvider}_api_key`) || '[]');
+
+                if (fallbackKeys.length > 0) {
+                    console.log(`🔄 Switching to fallback provider: ${fallbackProvider}`);
+                    this.setProvider(fallbackProvider);
+                    return await this.generateResponse(userMessage, conversationContext, 0);
+                }
+
+                throw new Error(`❌ Rate limit reached. กรุณารอสักครู่หรือเพิ่ม API Key ใหม่ในหน้า Admin`);
             }
 
             throw error;

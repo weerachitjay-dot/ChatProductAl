@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - ระบบจัดการ API Key | ไทยประกันชีวิต</title>
+    <meta name="description" content="หน้า Admin สำหรับจัดการ API Key">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles.css?v=5">
+
+    <!-- Favicon -->
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+
+    <style>
+        .admin-container {
+            max-width: 500px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+
+        .login-card,
+        .admin-panel {
+            background: var(--color-bg-secondary);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid var(--color-border);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-card h1,
+        .admin-panel h1 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: var(--color-text-primary);
+        }
+
+        .login-card .icon-large {
+            font-size: 4rem;
+            text-align: center;
+            display: block;
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--color-text-primary);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+            background: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            font-size: 1rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+        }
+
+        .btn-block {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1rem;
+        }
+
+        .error-message {
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid var(--color-error);
+            color: var(--color-error);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .success-message {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid var(--color-success);
+            color: var(--color-success);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .status-card {
+            background: var(--color-bg-tertiary);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--color-border);
+        }
+
+        .status-card .status-label {
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .status-card .status-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--color-text-primary);
+        }
+
+        .status-card .status-value.expired {
+            color: var(--color-error);
+        }
+
+        .status-card .status-value.active {
+            color: var(--color-success);
+        }
+
+        .forgot-password {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .forgot-password a {
+            color: var(--color-primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .admin-header h1 {
+            margin: 0;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            margin-bottom: 1rem;
+        }
+
+        .back-link:hover {
+            color: var(--color-primary);
+        }
+
+        .help-text {
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid var(--color-border);
+            margin: 1.5rem 0;
+        }
+
+        .password-toggle {
+            position: relative;
+        }
+
+        .password-toggle input {
+            padding-right: 3rem;
+        }
+
+        .password-toggle button {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            font-size: 1.25rem;
+            padding: 0.5rem;
+        }
+
+        .recovery-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .recovery-modal.active {
+            display: flex;
+        }
+
+        .recovery-content {
+            background: var(--color-bg-secondary);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .recovery-content h2 {
+            margin-bottom: 1rem;
+        }
+
+        .recovery-content p {
+            color: var(--color-text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">🔐</div>
+                    <div class="logo-text">
+                        <h1>Admin Panel</h1>
+                        <p>ระบบจัดการ API Key</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="admin-container">
+            <a href="index.html" class="back-link">
+                <span>←</span>
+                <span>กลับหน้าหลัก</span>
+            </a>
+
+            <!-- Login Form -->
+            <div id="loginCard" class="login-card">
+                <span class="icon-large">🔒</span>
+                <h1>เข้าสู่ระบบ Admin</h1>
+
+                <div id="loginError" class="error-message"></div>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="password">รหัสผ่าน Admin</label>
+                        <div class="password-toggle">
+                            <input type="password" id="password" placeholder="กรอกรหัสผ่าน" required>
+                            <button type="button" id="togglePassword">👁️</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <span class="icon">🔓</span>
+                        <span>เข้าสู่ระบบ</span>
+                    </button>
+                </form>
+
+                <div class="forgot-password">
+                    <a href="#" id="forgotPasswordBtn">ลืมรหัสผ่าน?</a>
+                </div>
+            </div>
+
+            <!-- Admin Panel (Hidden by default) -->
+            <div id="adminPanel" class="admin-panel hidden">
+                <div class="admin-header">
+                    <h1>⚙️ จัดการ API Key</h1>
+                    <button id="logoutBtn" class="btn btn-ghost">
+                        <span class="icon">🚪</span>
+                        <span>ออกจากระบบ</span>
+                    </button>
+                </div>
+
+                <div id="successMessage" class="success-message"></div>
+                <div id="errorMessage" class="error-message"></div>
+
+                <!-- Current Status -->
+                <div class="status-card">
+                    <div class="status-label">สถานะ API Key</div>
+                    <div id="apiStatus" class="status-value">กำลังตรวจสอบ...</div>
+                </div>
+
+                <div class="status-card">
+                    <div class="status-label">หมดอายุเมื่อ</div>
+                    <div id="expiryTime" class="status-value">-</div>
+                </div>
+
+                <hr class="divider">
+
+                <form id="apiKeyForm">
+                    <!-- Active Provider Selection -->
+                    <div class="form-group">
+                        <label>🎯 ใช้งาน Provider</label>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                            <button type="button" class="provider-btn active" data-provider="groq"
+                                style="flex: 1; padding: 0.75rem; border-radius: 8px; border: 2px solid var(--color-primary); background: rgba(var(--color-primary-rgb), 0.1); color: var(--color-primary); cursor: pointer; font-weight: 600;">
+                                ⚡ Groq
+                            </button>
+                            <button type="button" class="provider-btn" data-provider="gemini"
+                                style="flex: 1; padding: 0.75rem; border-radius: 8px; border: 2px solid var(--color-border); background: var(--color-bg-tertiary); color: var(--color-text-secondary); cursor: pointer; font-weight: 600;">
+                                🌟 Gemini
+                            </button>
+                        </div>
+                        <p class="help-text">💡 ถ้า Provider หลักมีปัญหา ระบบจะสลับไปใช้อีกตัวอัตโนมัติ</p>
+                    </div>
+
+                    <hr class="divider">
+
+                    <!-- Groq API Key -->
+                    <div class="form-group">
+                        <label for="groqApiKey">⚡ Groq API Key</label>
+                        <textarea id="groqApiKey" rows="3"
+                            placeholder="ใส่ Groq API Keys (แยกบรรทัดถ้ามีหลายตัว)&#10;gsk_...&#10;gsk_..."></textarea>
+                        <p class="help-text">
+                            ✨ รับ Groq API Key ฟรี: <a href="https://console.groq.com/keys"
+                                target="_blank">console.groq.com/keys</a>
+                        </p>
+                    </div>
+
+                    <!-- Gemini API Key -->
+                    <div class="form-group">
+                        <label for="geminiApiKey">🌟 Google Gemini API Key</label>
+                        <textarea id="geminiApiKey" rows="3"
+                            placeholder="ใส่ Gemini API Keys (แยกบรรทัดถ้ามีหลายตัว)&#10;AIza...&#10;AIza..."></textarea>
+                        <p class="help-text">
+                            ✨ รับ Gemini API Key ฟรี: <a href="https://aistudio.google.com/app/apikey"
+                                target="_blank">aistudio.google.com</a>
+                        </p>
+                    </div>
+
+                    <hr class="divider">
+
+                    <div class="form-group">
+                        <label for="expiryHours">⏰ ระยะเวลาหมดอายุ (ชั่วโมง)</label>
+                        <select id="expiryHours">
+                            <option value="1">1 ชั่วโมง</option>
+                            <option value="4">4 ชั่วโมง</option>
+                            <option value="8">8 ชั่วโมง</option>
+                            <option value="10" selected>10 ชั่วโมง (ค่าเริ่มต้น)</option>
+                            <option value="24">24 ชั่วโมง (1 วัน)</option>
+                            <option value="72">72 ชั่วโมง (3 วัน)</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <span class="icon">💾</span>
+                        <span>บันทึก API Keys</span>
+                    </button>
+                </form>
+
+                <hr class="divider">
+
+                <button id="clearApiKeyBtn" class="btn btn-ghost btn-block" style="color: var(--color-error);">
+                    <span class="icon">🗑️</span>
+                    <span>ล้าง API Key</span>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Recovery Modal -->
+    <div id="recoveryModal" class="recovery-modal">
+        <div class="recovery-content">
+            <h2>🔑 ลืมรหัสผ่าน</h2>
+            <p id="recoveryMessage">กำลังส่งรหัสผ่านไปที่ Email...</p>
+            <button id="closeRecoveryBtn" class="btn btn-primary">ปิด</button>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Scripts -->
+    <script type="module">
+        import adminService from './admin-service.js?v=5';
+
+        class AdminPage {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.checkLoginStatus();
+            }
+
+            setupEventListeners() {
+                // Login form
+                document.getElementById('loginForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleLogin();
+                });
+
+                // Toggle password visibility
+                document.getElementById('togglePassword').addEventListener('click', () => {
+                    const input = document.getElementById('password');
+                    input.type = input.type === 'password' ? 'text' : 'password';
+                });
+
+                // Forgot password
+                document.getElementById('forgotPasswordBtn').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.handleForgotPassword();
+                });
+
+                // Close recovery modal
+                document.getElementById('closeRecoveryBtn').addEventListener('click', () => {
+                    document.getElementById('recoveryModal').classList.remove('active');
+                });
+
+                // Logout
+                document.getElementById('logoutBtn').addEventListener('click', () => {
+                    this.handleLogout();
+                });
+
+                // API Key form
+                document.getElementById('apiKeyForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleSaveApiKey();
+                });
+
+                // Clear API Key
+                document.getElementById('clearApiKeyBtn').addEventListener('click', () => {
+                    if (confirm('ต้องการล้าง API Key ทั้งหมดใช่หรือไม่?')) {
+                        localStorage.removeItem('groq_api_key');
+                        localStorage.removeItem('gemini_api_key');
+                        localStorage.removeItem('admin_api_expiry');
+                        document.getElementById('groqApiKey').value = '';
+                        document.getElementById('geminiApiKey').value = '';
+                        this.updateStatus();
+                        this.showSuccess('ล้าง API Key ทั้งหมดแล้ว');
+                    }
+                });
+
+                // Provider button clicks
+                document.querySelectorAll('.provider-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const provider = btn.dataset.provider;
+                        adminService.setProvider(provider);
+                        this.updateProviderButtons(provider);
+                        this.updateStatus();
+                        this.showSuccess(`เปลี่ยนเป็น ${provider === 'groq' ? 'Groq' : 'Gemini'} แล้ว`);
+                    });
+                });
+            }
+
+            checkLoginStatus() {
+                if (adminService.isLoggedIn()) {
+                    this.showAdminPanel();
+                } else {
+                    this.showLoginForm();
+                }
+            }
+
+            handleLogin() {
+                const password = document.getElementById('password').value;
+                const errorDiv = document.getElementById('loginError');
+
+                if (adminService.login(password)) {
+                    errorDiv.style.display = 'none';
+                    this.showAdminPanel();
+                } else {
+                    errorDiv.textContent = '❌ รหัสผ่านไม่ถูกต้อง';
+                    errorDiv.style.display = 'block';
+                }
+            }
+
+            handleLogout() {
+                adminService.logout();
+                this.showLoginForm();
+            }
+
+            async handleForgotPassword() {
+                const modal = document.getElementById('recoveryModal');
+                const message = document.getElementById('recoveryMessage');
+
+                modal.classList.add('active');
+                message.textContent = '📧 กำลังส่งรหัสผ่าน...';
+
+                const result = await adminService.sendRecoveryEmail();
+
+                if (result.manualRecovery) {
+                    message.innerHTML = `
+            <strong>⚠️ ยังไม่ได้ตั้งค่า EmailJS</strong><br><br>
+            รหัสผ่าน Admin คือ: <code style="background: #333; padding: 0.25rem 0.5rem; border-radius: 4px;">Weerachit@jay</code><br><br>
+            <small>หากต้องการใช้ฟีเจอร์ส่ง Email โปรดตั้งค่า EmailJS ตามคู่มือ</small>
+          `;
+                } else if (result.success) {
+                    message.textContent = `✅ ${result.message}`;
+                } else {
+                    message.textContent = `❌ ${result.message}`;
+                }
+            }
+
+            handleSaveApiKey() {
+                const groqApiKey = document.getElementById('groqApiKey').value.trim();
+                const geminiApiKey = document.getElementById('geminiApiKey').value.trim();
+                const expiryHours = parseInt(document.getElementById('expiryHours').value);
+
+                if (!groqApiKey && !geminiApiKey) {
+                    this.showError('กรุณากรอก API Key อย่างน้อย 1 Provider');
+                    return;
+                }
+
+                // Save both API keys
+                let totalKeys = 0;
+
+                if (groqApiKey) {
+                    const groqKeys = groqApiKey.split('\n').map(k => k.trim()).filter(k => k.length > 0);
+                    localStorage.setItem('groq_api_key', JSON.stringify(groqKeys));
+                    localStorage.setItem('groq_key_index', '0');
+                    totalKeys += groqKeys.length;
+                }
+
+                if (geminiApiKey) {
+                    const geminiKeys = geminiApiKey.split('\n').map(k => k.trim()).filter(k => k.length > 0);
+                    localStorage.setItem('gemini_api_key', JSON.stringify(geminiKeys));
+                    localStorage.setItem('gemini_key_index', '0');
+                    totalKeys += geminiKeys.length;
+                }
+
+                // Set expiry time
+                const expiryTime = Date.now() + (expiryHours * 60 * 60 * 1000);
+                localStorage.setItem('admin_api_expiry', expiryTime.toString());
+
+                this.showSuccess(`บันทึก API Keys สำเร็จ! (${totalKeys} keys, หมดอายุใน ${expiryHours} ชั่วโมง)`);
+                this.updateStatus();
+            }
+
+            showLoginForm() {
+                document.getElementById('loginCard').classList.remove('hidden');
+                document.getElementById('adminPanel').classList.add('hidden');
+                document.getElementById('password').value = '';
+            }
+
+            showAdminPanel() {
+                document.getElementById('loginCard').classList.add('hidden');
+                document.getElementById('adminPanel').classList.remove('hidden');
+
+                // Load current provider
+                const currentProvider = adminService.getProvider();
+                this.updateProviderButtons(currentProvider);
+
+                // Load current API keys for both providers
+                const groqKeys = JSON.parse(localStorage.getItem('groq_api_key') || '[]');
+                const geminiKeys = JSON.parse(localStorage.getItem('gemini_api_key') || '[]');
+
+                document.getElementById('groqApiKey').value = groqKeys.join('\n');
+                document.getElementById('geminiApiKey').value = geminiKeys.join('\n');
+
+                this.updateStatus();
+            }
+
+            updateProviderButtons(activeProvider) {
+                document.querySelectorAll('.provider-btn').forEach(btn => {
+                    if (btn.dataset.provider === activeProvider) {
+                        btn.classList.add('active');
+                        btn.style.border = '2px solid var(--color-primary)';
+                        btn.style.background = 'rgba(var(--color-primary-rgb), 0.1)';
+                        btn.style.color = 'var(--color-primary)';
+                    } else {
+                        btn.classList.remove('active');
+                        btn.style.border = '2px solid var(--color-border)';
+                        btn.style.background = 'var(--color-bg-tertiary)';
+                        btn.style.color = 'var(--color-text-secondary)';
+                    }
+                });
+            }
+
+            updateStatus() {
+                const statusDiv = document.getElementById('apiStatus');
+                const expiryDiv = document.getElementById('expiryTime');
+
+                const timeRemaining = adminService.getTimeRemaining();
+                const currentProvider = adminService.getProvider();
+
+                // Count keys for both providers
+                const groqKeys = JSON.parse(localStorage.getItem('groq_api_key') || '[]');
+                const geminiKeys = JSON.parse(localStorage.getItem('gemini_api_key') || '[]');
+                const totalKeys = groqKeys.length + geminiKeys.length;
+
+                // Check expiry
+                const expiryTime = parseInt(localStorage.getItem('admin_api_expiry') || '0');
+                const isExpired = expiryTime > 0 && Date.now() > expiryTime;
+
+                if (isExpired) {
+                    statusDiv.textContent = '❌ หมดอายุแล้ว';
+                    statusDiv.className = 'status-value expired';
+                    expiryDiv.textContent = 'หมดอายุแล้ว';
+                } else if (totalKeys === 0) {
+                    statusDiv.textContent = '⚠️ ยังไม่ได้ตั้งค่า';
+                    statusDiv.className = 'status-value';
+                    expiryDiv.textContent = '-';
+                } else {
+                    let statusText = `✅ พร้อมใช้งาน | `;
+                    if (groqKeys.length > 0) statusText += `Groq: ${groqKeys.length}`;
+                    if (groqKeys.length > 0 && geminiKeys.length > 0) statusText += ` | `;
+                    if (geminiKeys.length > 0) statusText += `Gemini: ${geminiKeys.length}`;
+                    statusText += ` | 🎯 ${currentProvider === 'groq' ? 'Groq' : 'Gemini'}`;
+
+                    statusDiv.textContent = statusText;
+                    statusDiv.className = 'status-value active';
+                    expiryDiv.textContent = timeRemaining.message;
+                }
+            }
+
+            showSuccess(message) {
+                const div = document.getElementById('successMessage');
+                div.textContent = '✅ ' + message;
+                div.style.display = 'block';
+                setTimeout(() => div.style.display = 'none', 3000);
+            }
+
+            showError(message) {
+                const div = document.getElementById('errorMessage');
+                div.textContent = '❌ ' + message;
+                div.style.display = 'block';
+                setTimeout(() => div.style.display = 'none', 3000);
+            }
+        }
+
+        // Initialize
+        new AdminPage();
+    </script>
+</body>
+
+</html>
