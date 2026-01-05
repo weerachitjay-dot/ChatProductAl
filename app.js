@@ -33,12 +33,14 @@ class InsuranceAIApp {
         const toggle = document.getElementById('chatModeToggle');
         const label = document.getElementById('chatModeLabel');
 
-        // Default to checked (Continuous)
+        // Default to unchecked (New Customer mode)
         // If element doesn't exist (e.g. old HTML cache), skip
         if (!toggle) return;
 
-        toggle.checked = true;
-        this.isContinuousMode = true;
+        toggle.checked = false;
+        this.isContinuousMode = false;
+        label.textContent = 'ลูกค้าใหม่ (Reset ทุกครั้ง)';
+        label.className = 'text-accent';
 
         toggle.addEventListener('change', (e) => {
             this.isContinuousMode = e.target.checked;
