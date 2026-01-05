@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Test API</title>
+</head>
+
+<body>
+    <h1>Test AI API</h1>
+    <button id="testBtn">Test API Call</button>
+    <div id="result" style="margin-top: 20px; padding: 10px; background: #f0f0f0;"></div>
+
+    <script type="module">
+        import { AIService } from './ai-service.js';
+
+        const aiService = new AIService();
+        const resultDiv = document.getElementById('result');
+
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            try {
+                resultDiv.innerHTML = 'Testing...';
+
+                // Test getApiKey
+                const apiKey = aiService.getApiKey();
+                console.log('API Key:', apiKey ? 'Found' : 'Not found');
+                resultDiv.innerHTML += '<br>API Key: ' + (apiKey ? 'Found ✅' : 'Not found ❌');
+
+                // Test getAllApiKeys
+                const allKeys = aiService.getAllApiKeys();
+                console.log('All Keys:', allKeys);
+                resultDiv.innerHTML += '<br>Total Keys: ' + allKeys.length;
+
+                // Test hasApiKey
+                const hasKey = aiService.hasApiKey();
+                console.log('Has Key:', hasKey);
+                resultDiv.innerHTML += '<br>Has Key: ' + (hasKey ? 'Yes ✅' : 'No ❌');
+
+                if (hasKey) {
+                    // Try to call AI
+                    resultDiv.innerHTML += '<br><br>Calling AI...';
+                    const response = await aiService.generateResponse('สวัสดี', []);
+                    console.log('Response:', response);
+                    resultDiv.innerHTML += '<br>Response: ' + JSON.stringify(response);
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.innerHTML += '<br><br>❌ Error: ' + error.message;
+            }
+        });
+    </script>
+</body>
+
+</html>

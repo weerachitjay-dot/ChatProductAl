@@ -1,0 +1,451 @@
+// Multi-AI Service - Support for multiple AI providers
+import { SYSTEM_PROMPT, INSURANCE_PRODUCTS, PREMIUM_CALCULATOR } from './knowledge-base.js';
+
+class AIService {
+    constructor() {
+        this.apiKey = null;
+        this.provider = 'groq'; // Default: groq (fastest and free)
+        this.conversationHistory = [];
+
+        // API Endpoints for different providers
+        this.endpoints = {
+            groq: 'https://api.groq.com/openai/v1/chat/completions',
+            gemini: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+            cohere: 'https://api.cohere.ai/v1/chat',
+            huggingface: 'https://api-inference.huggingface.co/models/meta-llama/Llama-2-70b-chat-hf'
+        };
+
+        // Models for each provider
+        this.models = {
+            groq: 'llama-3.3-70b-versatile', // Latest model, free, fast, Thai supported
+            gemini: 'gemini-1.5-flash',
+            cohere: 'command-r-plus', // Free tier, Thai supported
+            huggingface: 'meta-llama/Llama-2-70b-chat-hf'
+        };
+    }
+
+    // Set API provider
+    setProvider(provider) {
+        this.provider = provider;
+        localStorage.setItem('ai_provider', provider);
+    }
+
+    // Get current provider
+    getProvider() {
+        if (!this.provider) {
+            this.provider = localStorage.getItem('ai_provider') || 'groq';
+        }
+        return this.provider;
+    }
+
+    // Set API key (supports multiple keys, one per line)
+    setApiKey(apiKeyInput) {
+        const provider = this.getProvider();
+
+        // Parse multiple keys (split by newline, trim, filter empty)
+        const keys = apiKeyInput
+            .split('\n')
+            .map(k => k.trim())
+            .filter(k => k.length > 0);
+
+        // Store as JSON array
+        localStorage.setItem(`${provider}_api_key`, JSON.stringify(keys));
+
+        // Reset current key index
+        localStorage.setItem(`${provider}_key_index`, '0');
+    }
+
+    // Get current API key
+    getApiKey() {
+        const provider = this.getProvider();
+        const keysJson = localStorage.getItem(`${provider}_api_key`);
+
+        if (!keysJson) return null;
+
+        const keys = JSON.parse(keysJson);
+        if (!Array.isArray(keys) || keys.length === 0) return null;
+
+        // Get current key index
+        const currentIndex = parseInt(localStorage.getItem(`${provider}_key_index`) || '0');
+
+        // Return current key
+        return keys[currentIndex % keys.length];
+    }
+
+    // Get all API keys
+    getAllApiKeys() {
+        const provider = this.getProvider();
+        const keysJson = localStorage.getItem(`${provider}_api_key`);
+
+        if (!keysJson) return [];
+
+        const keys = JSON.parse(keysJson);
+        return Array.isArray(keys) ? keys : [];
+    }
+
+    // Rotate to next API key
+    rotateApiKey() {
+        const provider = this.getProvider();
+        const keys = this.getAllApiKeys();
+
+        if (keys.length <= 1) {
+            console.log('Only one API key available, cannot rotate');
+            return false;
+        }
+
+        const currentIndex = parseInt(localStorage.getItem(`${provider}_key_index`) || '0');
+        const nextIndex = (currentIndex + 1) % keys.length;
+
+        localStorage.setItem(`${provider}_key_index`, nextIndex.toString());
+
+        console.log(`Rotated from key ${currentIndex} to key ${nextIndex}`);
+        return true;
+    }
+
+    // Check if API key is set
+    hasApiKey() {
+        return !!this.getApiKey();
+    }
+
+    // Set product focus
+    setProductFocus(products) {
+        localStorage.setItem('product_focus', JSON.stringify(products));
+    }
+
+    // Get product focus
+    getProductFocus() {
+        const saved = localStorage.getItem('product_focus');
+        return saved ? JSON.parse(saved) : ['all'];
+    }
+
+    // Set product training data
+    setProductTraining(data) {
+        localStorage.setItem('product_training', data);
+    }
+
+    // Get product training data
+    getProductTraining() {
+        return localStorage.getItem('product_training') || '';
+    }
+
+    // Build focused system prompt
+    buildFocusedPrompt() {
+        const focusedProducts = this.getProductFocus();
+        const trainingData = this.getProductTraining();
+
+        let prompt = SYSTEM_PROMPT;
+
+        // Get custom products from localStorage
+        const customProducts = JSON.parse(localStorage.getItem('custom_products') || '[]');
+
+        // If specific products are selected (not "all")
+        if (!focusedProducts.includes('all')) {
+            const selectedProducts = Object.values(INSURANCE_PRODUCTS)
+                .filter(p => focusedProducts.includes(p.code));
+
+            prompt += '\n\n**⚠️ สำคัญมาก - กฎเหล็ก:**\n';
+            prompt += '1. ตอบเฉพาะแบบประกันที่กำหนดเท่านั้น:\n';
+            selectedProducts.forEach(p => {
+                prompt += `   - ${p.name} (${p.code})\n`;
+            });
+            prompt += '\n2. **ห้าม** แนะนำหรือพูดถึงแบบประกันอื่นโดยเด็ดขาด\n';
+            prompt += '3. ถ้าลูกค้าถามแบบอื่น ให้บอกว่า "ตอนนี้เรามีโปรโมชั่นพิเศษสำหรับ [ชื่อแบบที่เลือก] ค่ะ"\n';
+            prompt += '\n**ข้อมูลแบบประกันที่ต้องเน้น:**\n';
+            selectedProducts.forEach(p => {
+                prompt += `\n### ${p.name}\n`;
+                prompt += `- อายุรับ: ${p.ageRange.min}-${p.ageRange.max} ปี\n`;
+                prompt += `- ความคุ้มครอง: ${p.coverage}\n`;
+                prompt += '- ประโยชน์:\n';
+                p.benefits.forEach(b => {
+                    prompt += `  * ${b}\n`;
+                });
+            });
+        }
+
+        // Add custom products (always include if exist)
+        if (customProducts.length > 0) {
+            prompt += '\n\n**โปรดักส์เพิ่มเติมที่มี:**\n';
+            customProducts.forEach(p => {
+                prompt += `\n### ${p.name}\n`;
+                prompt += `- อายุรับ: ${p.ageRange}\n`;
+                prompt += `- ความคุ้มครอง: ${p.coverage}\n`;
+                prompt += '- ประโยชน์:\n';
+                p.benefits.forEach(b => {
+                    prompt += `  * ${b}\n`;
+                });
+            });
+        }
+
+        // Add custom training data
+        if (trainingData && trainingData.trim()) {
+            prompt += '\n\n**ข้อมูลเพิ่มเติม/โปรโมชั่นพิเศษ:**\n';
+            prompt += trainingData;
+        }
+
+        return prompt;
+    }
+
+    // Generate response from AI
+    async generateResponse(userMessage, conversationContext = []) {
+        if (!this.hasApiKey()) {
+            throw new Error('กรุณาตั้งค่า API Key ก่อนใช้งาน');
+        }
+
+        const provider = this.getProvider();
+        let responseText;
+
+        try {
+            // Route to appropriate provider
+            switch (provider) {
+                case 'groq':
+                    responseText = await this.callGroq(userMessage, conversationContext);
+                    break;
+                case 'gemini':
+                    responseText = await this.callGemini(userMessage, conversationContext);
+                    break;
+                case 'cohere':
+                    responseText = await this.callCohere(userMessage, conversationContext);
+                    break;
+                case 'huggingface':
+                    responseText = await this.callHuggingFace(userMessage, conversationContext);
+                    break;
+                default:
+
+                    return {
+                        text: response,
+                        hasLeadAttempt: leadInfo.hasAttempt,
+                        detectedContact: leadInfo.contact,
+                        timestamp: new Date().toISOString()
+                    };
+
+            } catch (error) {
+                console.error('AI Service Error:', error);
+                throw error;
+            }
+        }
+
+    // Groq API (Recommended - Fast & Free)
+    async callGroq(userMessage, conversationContext) {
+            const messages = [
+                { role: 'system', content: this.buildFocusedPrompt() },
+                ...conversationContext.map(msg => ({
+                    role: msg.role === 'user' ? 'user' : 'assistant',
+                    content: msg.content
+                })),
+                { role: 'user', content: userMessage }
+            ];
+
+            const response = await fetch(this.endpoints.groq, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.getApiKey()}`
+                },
+                body: JSON.stringify({
+                    model: this.models.groq,
+                    messages: messages,
+                    temperature: 0.7,
+                    max_tokens: 1024,
+                    top_p: 0.95
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Groq API Error: ${errorData.error?.message || response.statusText}`);
+            }
+
+            const data = await response.json();
+            return data.choices[0]?.message?.content || 'ขออภัยค่ะ ไม่สามารถประมวลผลได้ในขณะนี้';
+        }
+
+    // Gemini API (Backup)
+    async callGemini(userMessage, conversationContext) {
+            const messages = [];
+
+            messages.push({
+                role: 'user',
+                parts: [{ text: this.buildFocusedPrompt() }]
+            });
+
+            messages.push({
+                role: 'model',
+                parts: [{ text: 'เข้าใจค่ะ ฉันพร้อมช่วยเหลือในฐานะที่ปรึกษาประกันชีวิตของไทยประกันชีวิตค่ะ 😊' }]
+            });
+
+            conversationContext.forEach(msg => {
+                messages.push({
+                    role: msg.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: msg.content }]
+                });
+            });
+
+            messages.push({
+                role: 'user',
+                parts: [{ text: userMessage }]
+            });
+
+            const response = await fetch(`${this.endpoints.gemini}?key=${this.getApiKey()}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    contents: messages,
+                    generationConfig: {
+                        temperature: 0.7,
+                        topK: 40,
+                        topP: 0.95,
+                        maxOutputTokens: 1024,
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Gemini API Error: ${errorData.error?.message || response.statusText}`);
+            }
+
+            const data = await response.json();
+            return data.candidates[0]?.content?.parts[0]?.text || 'ขออภัยค่ะ ไม่สามารถประมวลผลได้ในขณะนี้';
+        }
+
+    // Cohere API (Alternative)
+    async callCohere(userMessage, conversationContext) {
+            const chatHistory = conversationContext.map(msg => ({
+                role: msg.role === 'user' ? 'USER' : 'CHATBOT',
+                message: msg.content
+            }));
+
+            const response = await fetch(this.endpoints.cohere, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.getApiKey()}`
+                },
+                body: JSON.stringify({
+                    model: this.models.cohere,
+                    message: userMessage,
+                    chat_history: chatHistory,
+                    preamble: this.buildFocusedPrompt(),
+                    temperature: 0.7
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Cohere API Error: ${errorData.message || response.statusText}`);
+            }
+
+            const data = await response.json();
+            return data.text || 'ขออภัยค่ะ ไม่สามารถประมวลผลได้ในขณะนี้';
+        }
+
+    // Hugging Face API (Alternative)
+    async callHuggingFace(userMessage, conversationContext) {
+            // Build conversation
+            let conversation = this.buildFocusedPrompt() + '\n\n';
+            conversationContext.forEach(msg => {
+                const role = msg.role === 'user' ? 'User' : 'Assistant';
+                conversation += `${role}: ${msg.content}\n\n`;
+            });
+            conversation += `User: ${userMessage}\n\nAssistant:`;
+
+            const response = await fetch(this.endpoints.huggingface, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.getApiKey()}`
+                },
+                body: JSON.stringify({
+                    inputs: conversation,
+                    parameters: {
+                        max_new_tokens: 1024,
+                        temperature: 0.7,
+                        top_p: 0.95,
+                        return_full_text: false
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`HuggingFace API Error: ${errorData.error || response.statusText}`);
+            }
+
+            const data = await response.json();
+            return data[0]?.generated_text || 'ขออภัยค่ะ ไม่สามารถประมวลผลได้ในขณะนี้';
+        }
+
+        // Detect lead capture in conversation
+        detectLeadCapture(userMessage, aiResponse) {
+            const result = {
+                hasAttempt: false,
+                contact: null
+            };
+
+            const leadKeywords = [
+                'เบอร์โทร',
+                'โทรกลับ',
+                'ติดต่อกลับ',
+                'เบอร์ติดต่อ',
+                'เบอร์มือถือ',
+                'ให้ที่ปรึกษาโทร'
+            ];
+
+            result.hasAttempt = leadKeywords.some(keyword =>
+                aiResponse.toLowerCase().includes(keyword.toLowerCase())
+            );
+
+            const phoneRegex = /(?:0[689]\d{8})|(?:\+66[689]\d{8})/g;
+            const phoneMatches = userMessage.match(phoneRegex);
+
+            if (phoneMatches && phoneMatches.length > 0) {
+                result.contact = {
+                    type: 'phone',
+                    value: phoneMatches[0],
+                    raw: userMessage
+                };
+            }
+
+            const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+            const emailMatches = userMessage.match(emailRegex);
+
+            if (emailMatches && emailMatches.length > 0) {
+                if (!result.contact) {
+                    result.contact = {
+                        type: 'email',
+                        value: emailMatches[0],
+                        raw: userMessage
+                    };
+                } else {
+                    result.contact.email = emailMatches[0];
+                }
+            }
+
+            return result;
+        }
+
+        // Calculate premium (helper method)
+        calculatePremium(age, gender, sumAssured, paymentYears) {
+            return PREMIUM_CALCULATOR.calculatePremium(age, gender, sumAssured, paymentYears);
+        }
+
+        // Get product info
+        getProductInfo(productCode) {
+            return Object.values(INSURANCE_PRODUCTS).find(p => p.code === productCode);
+        }
+
+        // Get all products
+        getAllProducts() {
+            return Object.values(INSURANCE_PRODUCTS);
+        }
+
+        // Clear conversation history
+        clearHistory() {
+            this.conversationHistory = [];
+        }
+    }
+
+// Export singleton instance
+export default new AIService();

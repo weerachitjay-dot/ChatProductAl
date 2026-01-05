@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Assistant - ที่ปรึกษาประกันชีวิต | ไทยประกันชีวิต</title>
+  <meta name="description" content="ระบบ AI Assistant สำหรับที่ปรึกษาประกันชีวิต ช่วยตอบคำถามลูกค้าและจัดการ Leads">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css?v=4">
+
+  <!-- Favicon -->
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <div class="header-content">
+        <div class="logo">
+          <div class="logo-icon">🤖</div>
+          <div class="logo-text">
+            <h1>น้องแคร์ AI <span id="appVersion" style="font-size: 0.5em; opacity: 0.7; font-weight: normal;"></span>
+            </h1>
+            <p>ที่ปรึกษาประกันชีวิต</p>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button id="settingsBtn" class="btn btn-ghost" aria-label="Settings">
+            <span class="icon">⚙️</span>
+            <span>ตั้งค่า</span>
+          </button>
+          <button id="historyBtn" class="btn btn-ghost" aria-label="History">
+            <span class="icon">📋</span>
+            <span>ประวัติ</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="container">
+      <div class="app-grid">
+        <!-- Chat Section -->
+        <section class="chat-section">
+          <div class="chat-header">
+            <h2>💬 Chat กับ AI</h2>
+            <div class="chat-controls">
+              <button id="clearChatBtn" class="btn btn-sm btn-ghost" title="Clear conversation">
+                <span class="icon">🗑️</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Chat Mode Toggle -->
+          <div class="chat-mode-toggle">
+            <label class="toggle-switch">
+              <input type="checkbox" id="chatModeToggle">
+              <span class="slider round"></span>
+            </label>
+            <span id="chatModeLabel">คุยต่อเนื่อง (คนเดิม)</span>
+          </div>
+
+          <div id="chatMessages" class="chat-messages">
+            <!-- Welcome message -->
+            <div class="message ai-message">
+              <div class="message-avatar">🤖</div>
+              <div class="message-content">
+                <div class="message-bubble">
+                  <p><strong>สวัสดีค่ะ ฉันคือน้องแคร์ 😊</strong></p>
+                  <p>ผู้ช่วยที่ปรึกษาประกันชีวิต พร้อมช่วยคุณตอบคำถามลูกค้าเกี่ยวกับ:</p>
+                  <ul>
+                    <li>✨ เบี้ยประกันและแบบประกันต่างๆ</li>
+                    <li>💚 คำแนะนำสำหรับลูกค้า</li>
+                    <li>📞 เทคนิคการโน้มน้าวให้ลูกค้าให้ข้อมูลติดต่อ</li>
+                  </ul>
+                  <p class="hint">💡 วิธีใช้: คัดลอกคำถามจากลูกค้ามาวางในช่อง Chat แล้วกด Enter ฉันจะตอบให้คุณทันที</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-input-area">
+            <div class="quick-templates">
+              <button class="template-btn"
+                data-template="ลูกค้าอายุ 35 ปี ต้องการทุนประกัน 1 ล้านบาท ช่วยคำนวณเบี้ยประกันให้หน่อย">
+                ถามเบี้ย อายุ 35
+              </button>
+              <button class="template-btn" data-template="ลูกค้าลังเลว่าเบี้ยประกันแพงไป มีวิธีไหนช่วยโน้มน้าวได้บ้าง">
+                ลูกค้าบอกแพง
+              </button>
+              <button class="template-btn"
+                data-template="ลูกค้าสนใจแบบประกันสูงวัยไร้กังวล แต่ยังไม่ตัดสินใจ จะทำอย่างไรดี">
+                ลูกค้ายังไม่ตัดสินใจ
+              </button>
+              <button class="template-btn" data-template="ลูกค้าถามเรื่องลดหย่อนภาษี (เช่น ซื้อให้พ่อแม่ลดหย่อนได้ไหม)">
+                ถามเรื่องลดหย่อนภาษี
+              </button>
+              <button class="template-btn" data-template="ประกันตัวนี้เบี้ยปีเท่าไหร่คะ">
+                ถามเบี้ยรายปี
+              </button>
+            </div>
+
+            <div class="chat-input-wrapper">
+              <textarea id="chatInput" placeholder="วางคำถามจากลูกค้าที่นี่... (Shift + Enter เพื่อขึ้นบรรทัดใหม่)"
+                rows="3"></textarea>
+              <button id="sendBtn" class="btn btn-primary" disabled>
+                <span class="icon">📤</span>
+                <span>ส่ง</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+          <!-- Quick Product Selector -->
+          <div class="product-selector">
+            <h4>🎯 AI จะตอบเกี่ยวกับ:</h4>
+            <div class="product-buttons">
+              <button class="product-btn active" data-product="all">
+                <span class="icon">📦</span>
+                ทั้ง 3 แบบ
+              </button>
+              <button class="product-btn" data-product="SENIOR_CARE">
+                <span class="icon">👴</span>
+                สูงวัยไร้กังวล
+              </button>
+              <button class="product-btn" data-product="SENIOR_RICH">
+                <span class="icon">💰</span>
+                สูงวัยมีทรัพย์
+              </button>
+              <button class="product-btn" data-product="SENIOR_BONE_CARE">
+                <span class="icon">🦴</span>
+                ซีเนียร์ โบน แคร์
+              </button>
+            </div>
+          </div>
+
+          <!-- Recent Leads -->
+          <div class="sidebar-card">
+            <h3>📞 Leads ที่ได้</h3>
+            <div id="leadsList" class="leads-list">
+              <p class="empty-state">ยังไม่มี leads</p>
+            </div>
+          </div>
+
+          <!-- Products Quick Reference -->
+          <div class="sidebar-card">
+            <h3>📦 ผลิตภัณฑ์</h3>
+            <div class="products-list">
+              <div class="product-item">
+                <div class="product-name">สูงวัยไร้กังวล</div>
+                <div class="product-age">อายุ 50-75 ปี</div>
+              </div>
+              <div class="product-item">
+                <div class="product-name">สูงวัยมีทรัพย์</div>
+                <div class="product-age">อายุ 50-70 ปี</div>
+              </div>
+              <div class="product-item">
+                <div class="product-name">ซีเนียร์ โบน แคร์</div>
+                <div class="product-age">อายุ 50-70 ปี</div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>⚙️ ตั้งค่า</h2>
+        <button class="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="aiProvider">เลือก AI Provider</label>
+          <select id="aiProvider">
+            <option value="groq">Groq (แนะนำ - เร็ว ฟรี 100%)</option>
+            <option value="gemini">Google Gemini</option>
+            <option value="cohere">Cohere</option>
+            <option value="huggingface">Hugging Face</option>
+          </select>
+          <p class="help-text">
+            💡 <strong>Groq</strong> - เร็วที่สุด, ฟรี, รองรับภาษาไทยดี (แนะนำ!)
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label for="apiKeyInput">API Key</label>
+          <textarea id="apiKeyInput" rows="3"
+            placeholder="ใส่ API Keys (แยกบรรทัดถ้ามีหลายตัว)&#10;sk-...&#10;sk-...&#10;sk-..."></textarea>
+          <p class="help-text" id="apiKeyHelp">
+            💡 สามารถใส่หลาย API Keys ได้ (แยกบรรทัด) เพื่อป้องกัน Rate Limit
+            ✨ รับ Groq API Key ฟรี:
+            <a href="https://console.groq.com/keys" target="_blank" rel="noopener">
+              console.groq.com/keys
+            </a>
+          </p>
+        </div>
+
+        <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--color-border);">
+
+        <div class="form-group">
+          <label>➕ เพิ่มโปรดักส์ใหม่</label>
+          <div style="display: grid; gap: 0.75rem;">
+            <input type="text" id="newProductName" placeholder="ชื่อโปรดักส์ เช่น สุขภาพดี 99"
+              style="padding: 0.6rem; border-radius: 8px; border: 1px solid var(--color-border); background: var(--color-bg-primary); color: var(--color-text-primary);">
+            <input type="text" id="newProductAgeRange" placeholder="ช่วงอายุ เช่น 20-65 ปี"
+              style="padding: 0.6rem; border-radius: 8px; border: 1px solid var(--color-border); background: var(--color-bg-primary); color: var(--color-text-primary);">
+            <input type="text" id="newProductCoverage" placeholder="ความคุ้มครอง เช่น สูงสุด 500,000 บาท"
+              style="padding: 0.6rem; border-radius: 8px; border: 1px solid var(--color-border); background: var(--color-bg-primary); color: var(--color-text-primary);">
+            <textarea id="newProductBenefits" rows="4"
+              placeholder="ประโยชน์ (แยกด้วย Enter)&#10;- คุ้มครองครบถ้วน&#10;- เบี้ยถูก&#10;- รับเงินคืน"
+              style="padding: 0.6rem; border-radius: 8px; border: 1px solid var(--color-border); background: var(--color-bg-primary); color: var(--color-text-primary); font-family: inherit;"></textarea>
+            <button id="addProductBtn" class="btn btn-secondary" type="button">
+              ➕ เพิ่มโปรดักส์
+            </button>
+          </div>
+          <div id="customProductsList" style="margin-top: 1rem; display: none;">
+            <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 0.5rem;">
+              โปรดักส์ที่เพิ่มแล้ว:</p>
+            <div id="customProductsItems" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+          </div>
+        </div>
+
+        <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--color-border);">
+
+        <div class="form-group">
+          <label for="productFocus">🎯 โปรดักส์ที่กำลังขาย</label>
+          <select id="productFocus" multiple size="5">
+            <option value="all">ทั้ง 3 แบบ (แนะนำทั่วไป)</option>
+            <option value="SENIOR_CARE">สูงวัยไร้กังวล</option>
+            <option value="SENIOR_RICH">สูงวัยมีทรัพย์</option>
+            <option value="SENIOR_BONE_CARE">ซีเนียร์ โบน แคร์</option>
+          </select>
+          <p class="help-text">
+            💡 เลือกโปรดักส์ที่ต้องการให้ AI ตอบ (กด Cmd/Ctrl+Click เพื่อเลือกหลายตัว)
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label for="productTraining">📝 ข้อมูลเพิ่มเติมเกี่ยวกับโปรดักส์</label>
+          <textarea id="productTraining" rows="5" placeholder="ใส่ข้อมูลเพิ่มเติม เช่น:
+- โปรโมชั่นพิเศษ
+- จุดเด่นที่ต้องเน้น
+- ราคาพิเศษ
+- เงื่อนไขพิเศษ"></textarea>
+          <p class="help-text">
+            💡 AI จะใช้ข้อมูลนี้ตอบลูกค้า + จะตอบเฉพาะโปรดักส์ที่เลือกเท่านั้น
+          </p>
+        </div>
+
+        <div class="modal-actions">
+          <button id="saveApiKeyBtn" class="btn btn-primary">บันทึก</button>
+          <button class="btn btn-ghost modal-close">ยกเลิก</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Modal -->
+  <div id="historyModal" class="modal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h2>📋 ประวัติการสนทนา</h2>
+        <button class="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="historyList" class="history-list">
+          <p class="empty-state">ยังไม่มีประวัติการสนทนา</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Scripts -->
+  <script type="module" src="app.js?v=4"></script>
+</body>
+
+</html>
