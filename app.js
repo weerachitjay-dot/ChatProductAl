@@ -1,5 +1,5 @@
 // Main Application Logic
-import aiService from './ai-service.js?v=3';
+import aiService from './ai-service.js?v=4';
 import { PREMIUM_CALCULATOR, FAQ_TEMPLATES } from './knowledge-base.js?v=3';
 
 class InsuranceAIApp {
