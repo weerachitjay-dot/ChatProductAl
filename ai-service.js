@@ -282,19 +282,35 @@ class AIService {
                     prompt += `2. ขอเบอร์โทรเพื่อให้เจ้าหน้าที่ช่วยหาแบบประกันที่เหมาะสมที่สุดให้\\n\\n`;
                 }
             } else {
-                // --- NORMAL PRODUCT FOCUSED PROMPT ---
+                // --- NORMAL PRODUCT FOCUSED PROMPT (WARM & WELCOMING) ---
                 prompt += '=== โปรดักส์ที่กำลังขาย ===\\n';
                 selectedProducts.forEach(p => {
                     prompt += `🎯 **${p.name}**\\n`;
                     prompt += `   - ลิงก์: ${p.url}\\n`;
                 });
 
-                prompt += '\\n=== Template มาตรฐาน (ใช้แบบนี้เท่านั้น) ===\\n';
-                prompt += 'แผนประกันจะพิจารณาตามเงื่อนไขและข้อมูลของแต่ละบุคคลค่ะ\\n';
-                prompt += '.\\n';
-                prompt += 'หากสนใจรับข้อมูลเพิ่มเติมก่อนตัดสินใจ สามารถกดลิงก์นี้ได้เลยค่ะ\\n';
-                prompt += '.\\n';
-                prompt += '(แนบลิงก์ของโปรดักส์)\\n\\n';
+                prompt += '\\n=== วิธีการตอบ (อบอุ่น เป็นกันเอง) ===\\n';
+                prompt += '1. **เปิดด้วยการต้อนรับ** - ทักทายอบอุ่น แสดงความยินดีที่ลูกค้าสนใจ\\n';
+                prompt += '2. **ตอบรับเบื้องต้น** - บอกว่าแผนนี้น่าสนใจ เหมาะสำหรับลูกค้า\\n';
+                prompt += '3. **แนะนำกดลิงก์** - เชิญชวนดูรายละเอียด\\n';
+                prompt += '4. **ขอเบอร์โทร** - ขอเบอร์อย่างเป็นกันเอง\\n\\n';
+
+                if (userAge !== null) {
+                    prompt += `💡 **ลูกค้าบอกอายุมาแล้ว (${userAge} ปี)** - ตอบให้เฉพาะเจาะจง\\n\\n`;
+                    prompt += '**ตัวอย่างการตอบ:**\\n';
+                    prompt += `"สวัสดีค่ะ ยินดีให้ข้อมูลเลยค่ะ 😊\\n.\\n`;
+                    prompt += `แผน ${selectedProducts[0]?.name || 'นี้'} เหมาะสำหรับพี่เลยค่ะ น่าสนใจมากๆ ค่ะ\\n.\\n`;
+                    prompt += `สะดวกกดลิงก์นี้ดูรายละเอียดได้เลยนะคะ\\n.\\n`;
+                    prompt += `${selectedProducts[0]?.url || '(ลิงก์)'}\\n.\\n`;
+                    prompt += `ฝากเบอร์โทรไว้ได้ไหมคะ เดี๋ยวให้ที่ปรึกษาโทรไปอธิบายเพิ่มเติมให้ค่ะ ฟรีไม่มีค่าใช้จ่ายค่ะ 💚"\\n\\n`;
+                } else {
+                    prompt += '**ตัวอย่างการตอบ:**\\n';
+                    prompt += `"สวัสดีค่ะ ยินดีให้ข้อมูลค่ะ 😊\\n.\\n`;
+                    prompt += `แผน ${selectedProducts[0]?.name || 'นี้'} น่าสนใจมากเลยค่ะ\\n.\\n`;
+                    prompt += `สะดวกกดลิงก์นี้ดูรายละเอียดได้เลยนะคะ\\n.\\n`;
+                    prompt += `${selectedProducts[0]?.url || '(ลิงก์)'}\\n.\\n`;
+                    prompt += `ถ้าสนใจ ฝากเบอร์โทรไว้ได้ไหมคะ เดี๋ยวให้ที่ปรึกษาโทรไปอธิบายเพิ่มเติมให้ค่ะ ฟรีไม่มีค่าใช้จ่ายค่ะ 💚"\\n\\n';
+                }
 
                 prompt += '=== กรณีอายุเกินเกณฑ์ ===\\n';
                 prompt += 'แผนที่สอบถามจะมีเงื่อนไขด้านอายุค่ะ\\n';
@@ -313,8 +329,8 @@ class AIService {
 
         // --- DYNAMIC AD COPY INJECTION ---
         if (isCommentMode && selectedVariant) {
-            prompt += `\n\n**🎯 SELECTED AD COPY TEMPLATE:**\n`;
-            prompt += `Please use the following text pattern to answer:\n`;
+            prompt += `\n\n **🎯 SELECTED AD COPY TEMPLATE:**\n`;
+            prompt += `Please use the following text pattern to answer: \n`;
             prompt += `"${selectedVariant.template}"\n`;
         }
 
@@ -322,12 +338,12 @@ class AIService {
         if (customProducts.length > 0) {
             prompt += '\n\n**โปรดักส์เพิ่มเติมที่มี:**\n';
             customProducts.forEach(p => {
-                prompt += `\n### ${p.name}\n`;
-                prompt += `- อายุรับ: ${p.ageRange}\n`;
-                prompt += `- ความคุ้มครอง: ${p.coverage}\n`;
+                prompt += `\n### ${ p.name } \n`;
+                prompt += `- อายุรับ: ${ p.ageRange } \n`;
+                prompt += `- ความคุ้มครอง: ${ p.coverage } \n`;
                 prompt += '- ประโยชน์:\n';
                 p.benefits.forEach(b => {
-                    prompt += `  * ${b}\n`;
+                    prompt += `  * ${ b } \n`;
                 });
             });
         }
@@ -392,7 +408,7 @@ class AIService {
                 const allKeys = this.getAllApiKeys();
 
                 if (allKeys.length > 1) {
-                    console.log(`🔄 Rate limit - trying next API key (${retryCount + 1}/${maxRetries})...`);
+                    console.log(`🔄 Rate limit - trying next API key(${ retryCount + 1}/${maxRetries})...`);
 
                     if (this.rotateApiKey()) {
                         console.log('✅ Retrying with next key...');
@@ -407,15 +423,15 @@ class AIService {
                 const fallbackProvider = currentProvider === 'groq' ? 'gemini' : 'groq';
 
                 // Check if fallback provider has keys
-                const fallbackKeys = JSON.parse(localStorage.getItem(`${fallbackProvider}_api_key`) || '[]');
+                const fallbackKeys = JSON.parse(localStorage.getItem(`${ fallbackProvider } _api_key`) || '[]');
 
                 if (fallbackKeys.length > 0) {
-                    console.log(`🔄 Switching to fallback provider: ${fallbackProvider}`);
+                    console.log(`🔄 Switching to fallback provider: ${ fallbackProvider } `);
                     this.setProvider(fallbackProvider);
                     return await this.generateResponse(userMessage, conversationContext, 0);
                 }
 
-                throw new Error(`❌ Rate limit reached. กรุณารอสักครู่หรือเพิ่ม API Key ใหม่ในหน้า Admin`);
+                throw new Error(`❌ Rate limit reached.กรุณารอสักครู่หรือเพิ่ม API Key ใหม่ในหน้า Admin`);
             }
 
             throw error;
@@ -437,7 +453,7 @@ class AIService {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.getApiKey()}`
+                'Authorization': `Bearer ${ this.getApiKey() } `
             },
             body: JSON.stringify({
                 model: this.models.groq,
@@ -450,7 +466,7 @@ class AIService {
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(`Groq API Error: ${errorData.error?.message || response.statusText}`);
+            throw new Error(`Groq API Error: ${ errorData.error?.message || response.statusText } `);
         }
 
         const data = await response.json();
@@ -483,7 +499,7 @@ class AIService {
             parts: [{ text: userMessage }]
         });
 
-        const response = await fetch(`${this.endpoints.gemini}?key=${this.getApiKey()}`, {
+        const response = await fetch(`${ this.endpoints.gemini }?key = ${ this.getApiKey() } `, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -501,7 +517,7 @@ class AIService {
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(`Gemini API Error: ${errorData.error?.message || response.statusText}`);
+            throw new Error(`Gemini API Error: ${ errorData.error?.message || response.statusText } `);
         }
 
         const data = await response.json();
@@ -519,7 +535,7 @@ class AIService {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.getApiKey()}`
+                'Authorization': `Bearer ${ this.getApiKey() } `
             },
             body: JSON.stringify({
                 model: this.models.cohere,
@@ -532,7 +548,7 @@ class AIService {
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(`Cohere API Error: ${errorData.message || response.statusText}`);
+            throw new Error(`Cohere API Error: ${ errorData.message || response.statusText } `);
         }
 
         const data = await response.json();
@@ -545,15 +561,15 @@ class AIService {
         let conversation = this.buildFocusedPrompt(userMessage) + '\n\n';
         conversationContext.forEach(msg => {
             const role = msg.role === 'user' ? 'User' : 'Assistant';
-            conversation += `${role}: ${msg.content}\n\n`;
+            conversation += `${ role }: ${ msg.content } \n\n`;
         });
-        conversation += `User: ${userMessage}\n\nAssistant:`;
+        conversation += `User: ${ userMessage } \n\nAssistant: `;
 
         const response = await fetch(this.endpoints.huggingface, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.getApiKey()}`
+                'Authorization': `Bearer ${ this.getApiKey() } `
             },
             body: JSON.stringify({
                 inputs: conversation,
@@ -568,7 +584,7 @@ class AIService {
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(`HuggingFace API Error: ${errorData.error || response.statusText}`);
+            throw new Error(`HuggingFace API Error: ${ errorData.error || response.statusText } `);
         }
 
         const data = await response.json();
@@ -623,20 +639,20 @@ class AIService {
 
         // 1. Protect existing dots
         // Find lines that are just a dot (with optional whitespace)
-        normalized = normalized.replace(/(^|\n)\s*\.\s*(\n|$)/g, `$1${DOT_PLACEHOLDER}$2`);
+        normalized = normalized.replace(/(^|\n)\s*\.\s*(\n|$)/g, `$1${ DOT_PLACEHOLDER } $2`);
 
         // 2. Collapse multiple newlines around the placeholder
         // e.g. "\n\n___DOT___\n\n" -> "\n___DOT___\n"
         // We use a loop to ensure we catch all variations or a specific regex
         // Regex: At least one newline, optional whitespace, placeholder, optional whitespace, at least one newline
-        const placeholderRegex = new RegExp(`\\n\\s*${DOT_PLACEHOLDER}\\s*\\n`, 'g');
-        normalized = normalized.replace(placeholderRegex, `\n${DOT_PLACEHOLDER}\n`);
+        const placeholderRegex = new RegExp(`\\n\\s * ${ DOT_PLACEHOLDER } \\s *\\n`, 'g');
+        normalized = normalized.replace(placeholderRegex, `\n${ DOT_PLACEHOLDER } \n`);
 
         // Also handle start/end of string cases if needed, but the primary issue is middle content.
 
         // 3. Convert remaining "True Blank Lines" (double newlines) into placeholders
         // Meaning: Data\n\nData -> Data\n.\nData
-        normalized = normalized.replace(/\n\s*\n/g, `\n${DOT_PLACEHOLDER}\n`);
+        normalized = normalized.replace(/\n\s*\n/g, `\n${ DOT_PLACEHOLDER } \n`);
 
         // 4. Restore dots and ensure surrounding newlines
         // The placeholder is now guaranteed to be between newlines (from steps 2 & 3)
