@@ -230,6 +230,29 @@ class InsuranceAIApp {
             });
         });
 
+        // Response Mode buttons (Comment vs Inbox)
+        const commentModeBtn = document.getElementById('commentModeBtn');
+        const inboxModeBtn = document.getElementById('inboxModeBtn');
+        const responseModeDescription = document.getElementById('responseModeDescription');
+
+        if (commentModeBtn && inboxModeBtn) {
+            // Initialize from saved mode
+            const savedMode = aiService.getResponseMode();
+            this.updateResponseModeUI(savedMode, commentModeBtn, inboxModeBtn, responseModeDescription);
+
+            commentModeBtn.addEventListener('click', () => {
+                aiService.setResponseMode('comment');
+                this.updateResponseModeUI('comment', commentModeBtn, inboxModeBtn, responseModeDescription);
+                this.showToast('โหมดตอบคอมเม้นต์: สั้น กระชับ', 'info');
+            });
+
+            inboxModeBtn.addEventListener('click', () => {
+                aiService.setResponseMode('inbox');
+                this.updateResponseModeUI('inbox', commentModeBtn, inboxModeBtn, responseModeDescription);
+                this.showToast('โหมดตอบอินบ็อกซ์: ให้ข้อมูลเยอะกว่า + โน้มน้าว', 'info');
+            });
+        }
+
         // Clear chat
         document.getElementById('clearChatBtn').addEventListener('click', () => {
             if (confirm('ต้องการล้างประวัติการสนทนาทั้งหมดใช่หรือไม่?')) {
@@ -714,6 +737,37 @@ class InsuranceAIApp {
                     ${info.url.replace('https://', '')}
                 </a>
             `;
+        }
+    }
+
+    // Update response mode UI
+    updateResponseModeUI(mode, commentBtn, inboxBtn, descriptionEl) {
+        if (mode === 'inbox') {
+            // Inbox mode active
+            inboxBtn.style.border = '2px solid var(--color-primary)';
+            inboxBtn.style.background = 'rgba(var(--color-primary-rgb), 0.1)';
+            inboxBtn.style.color = 'var(--color-primary)';
+
+            commentBtn.style.border = '2px solid var(--color-border)';
+            commentBtn.style.background = 'var(--color-bg-tertiary)';
+            commentBtn.style.color = 'var(--color-text-secondary)';
+
+            if (descriptionEl) {
+                descriptionEl.textContent = '📥 ละเอียดกว่า เป็นกันเอง โน้มน้าวขอเบอร์โทร';
+            }
+        } else {
+            // Comment mode active (default)
+            commentBtn.style.border = '2px solid var(--color-primary)';
+            commentBtn.style.background = 'rgba(var(--color-primary-rgb), 0.1)';
+            commentBtn.style.color = 'var(--color-primary)';
+
+            inboxBtn.style.border = '2px solid var(--color-border)';
+            inboxBtn.style.background = 'var(--color-bg-tertiary)';
+            inboxBtn.style.color = 'var(--color-text-secondary)';
+
+            if (descriptionEl) {
+                descriptionEl.textContent = '✨ สั้น กระชับ เหมาะกับคอมเม้นต์ Facebook';
+            }
         }
     }
 

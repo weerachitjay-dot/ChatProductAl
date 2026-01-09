@@ -7,6 +7,11 @@
   <title>AI Assistant - ที่ปรึกษาประกันชีวิต | ไทยประกันชีวิต</title>
   <meta name="description" content="ระบบ AI Assistant สำหรับที่ปรึกษาประกันชีวิต ช่วยตอบคำถามลูกค้าและจัดการ Leads">
 
+  <!-- Force browser to check for updates -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -68,6 +73,22 @@
               </button>
             </div>
           </div>
+
+          <!-- Response Mode Toggle (Comment vs Inbox) -->
+          <div class="response-mode-toggle" style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
+            <button id="commentModeBtn" class="mode-btn active"
+              style="flex: 1; padding: 0.6rem; border-radius: 8px; border: 2px solid var(--color-primary); background: rgba(var(--color-primary-rgb), 0.1); color: var(--color-primary); cursor: pointer; font-weight: 600; font-size: 0.85rem;">
+              💬 ตอบคอมเม้นต์
+            </button>
+            <button id="inboxModeBtn" class="mode-btn"
+              style="flex: 1; padding: 0.6rem; border-radius: 8px; border: 2px solid var(--color-border); background: var(--color-bg-tertiary); color: var(--color-text-secondary); cursor: pointer; font-weight: 600; font-size: 0.85rem;">
+              📥 ตอบอินบ็อกซ์
+            </button>
+          </div>
+          <p id="responseModeDescription"
+            style="font-size: 0.75rem; color: var(--color-text-secondary); margin-bottom: 0.75rem; text-align: center;">
+            ✨ สั้น กระชับ เหมาะกับคอมเม้นต์ Facebook
+          </p>
 
           <!-- Chat Mode Toggle -->
           <div class="chat-mode-toggle">
