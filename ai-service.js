@@ -1,6 +1,5 @@
 // Multi-AI Service - Support for multiple AI providers
-// Multi-AI Service - Support for multiple AI providers
-import { SYSTEM_PROMPT, COMMENT_SYSTEM_PROMPT, INSURANCE_PRODUCTS, PREMIUM_CALCULATOR, AD_COPY_VARIANTS } from './knowledge-base.js?v=8';
+import { SYSTEM_PROMPT, COMMENT_SYSTEM_PROMPT, INBOX_SYSTEM_PROMPT, INSURANCE_PRODUCTS, PREMIUM_CALCULATOR, AD_COPY_VARIANTS } from './knowledge-base.js?v=9';
 
 class AIService {
     constructor() {
@@ -136,6 +135,16 @@ class AIService {
         return localStorage.getItem('product_training') || '';
     }
 
+    // Set response mode (comment or inbox)
+    setResponseMode(mode) {
+        localStorage.setItem('response_mode', mode);
+    }
+
+    // Get response mode
+    getResponseMode() {
+        return localStorage.getItem('response_mode') || 'comment'; // default: comment
+    }
+
     // Helper: Select weighted ad copy variant
     selectAdCopyVariant(productKey) {
         if (!AD_COPY_VARIANTS[productKey]) return null;
@@ -153,10 +162,36 @@ class AIService {
         return variants[variants.length - 1];
     }
 
+    // Helper: Extract age from text
+    extractAge(text) {
+        if (!text) return null;
+
+        // Regex patterns for Thai age context
+        const patterns = [
+            /อายุ\s*(\d{1,3})/,          // อายุ 60
+            /วัย\s*(\d{1,3})/,           // วัย 60
+            /(\d{1,3})\s*ปี/,            // 60 ปี
+            /(\d{1,3})\s*ขวบ/            // 5 ขวบ
+        ];
+
+        for (const pattern of patterns) {
+            const match = text.match(pattern);
+            if (match && match[1]) {
+                const age = parseInt(match[1]);
+                // Basic validation: age should be reasonable (e.g. 0-120)
+                if (age >= 0 && age <= 120) {
+                    return age;
+                }
+            }
+        }
+        return null;
+    }
+
     // Build focused system prompt
-    buildFocusedPrompt() {
+    buildFocusedPrompt(userMessage = '') {
         const focusedProducts = this.getProductFocus();
         const trainingData = this.getProductTraining();
+        const userAge = this.extractAge(userMessage);
 
         // 1. Determine which System Prompt to use
         // Comment Mode only when 'all' is selected (not specific products)
@@ -171,8 +206,16 @@ class AIService {
             }
         }
 
-        // 2. Select Base Prompt - use SYSTEM_PROMPT when specific product is selected
-        let prompt = isCommentMode ? COMMENT_SYSTEM_PROMPT : SYSTEM_PROMPT;
+        // 2. Select Base Prompt based on response mode
+        const responseMode = this.getResponseMode();
+        let prompt;
+
+        if (responseMode === 'inbox') {
+            prompt = INBOX_SYSTEM_PROMPT;
+        } else {
+            // Comment mode (default)
+            prompt = isCommentMode ? COMMENT_SYSTEM_PROMPT : SYSTEM_PROMPT;
+        }
 
         // Get custom products from localStorage
         const customProducts = JSON.parse(localStorage.getItem('custom_products') || '[]');
@@ -182,52 +225,89 @@ class AIService {
             const selectedProducts = Object.values(INSURANCE_PRODUCTS)
                 .filter(p => focusedProducts.includes(p.code));
 
-            // CRITICAL: Override all previous instructions
-            prompt = ''; // Reset prompt to remove default system prompt influence
+            // --- AGE FILTERING CHECK ---
+            let ineligibleProduct = null;
+            let recommendedProduct = null;
 
-            prompt += '**🚨 CRITICAL OVERRIDE - READ THIS FIRST:**\n';
-            prompt += 'คุณคือแอดมินเพจไทยประกันชีวิต (เพศหญิง) ตอบด้วยภาษาสุภาพ ใช้ ค่ะ/คะ/นะคะ\n\n';
+            if (userAge !== null && selectedProducts.length === 1) {
+                const product = selectedProducts[0];
+                const { min, max } = product.ageRange;
 
-            prompt += '**⚠️ กฎเหล็กที่ต้องทำตาม 100%:**\n';
-            prompt += '**คุณได้รับคำสั่งให้ขายเฉพาะแบบประกันนี้เท่านั้น:**\n';
-            selectedProducts.forEach(p => {
-                prompt += `\n🎯 **${p.name}**\n`;
-                prompt += `   - รหัส: ${p.code}\n`;
-                prompt += `   - อายุรับ: ${p.ageRange.min}-${p.ageRange.max} ปี\n`;
-                prompt += `   - ลิงก์: ${p.url}\n`;
-            });
+                if (userAge < min || userAge > max) {
+                    ineligibleProduct = product;
 
-            prompt += '\n**กฎการตอบ:**\n';
-            prompt += '1. ✅ ถ้าลูกค้าอายุอยู่ในเกณฑ์ (${selectedProducts[0]?.ageRange?.min}-${selectedProducts[0]?.ageRange?.max} ปี) → **ต้องแนะนำแบบนี้เท่านั้น** ห้ามเสนอแบบอื่นเด็ดขาด\n';
-            prompt += '2. ❌ ห้ามพูดถึง "สูงวัยไร้กังวล" หรือ "สูงวัยมีทรัพย์" ถ้าลูกค้าอายุยังอยู่ในเกณฑ์\n';
-            prompt += '3. ⚠️ ถ้าอายุเกินเกณฑ์ → ค่อยแนะนำแบบอื่น พร้อมบอก "แบบนี้รับถึงอายุ X ปี แต่เรามีอีกแบบค่ะ"\n';
-            prompt += '4. 🔗 ใช้ลิงก์ของแบบที่เลือกเท่านั้น ห้ามใช้ลิงก์อื่น\n';
-            prompt += '5. 📞 ต้องขอเบอร์โทรทุกครั้ง\n\n';
+                    // Find alternative product
+                    const allProducts = Object.values(INSURANCE_PRODUCTS);
+                    recommendedProduct = allProducts.find(p =>
+                        p.code !== product.code &&
+                        userAge >= p.ageRange.min &&
+                        userAge <= p.ageRange.max
+                    );
+                }
+            }
 
-            prompt += '**ข้อมูลแบบประกันที่ต้องใช้:**\n';
-            selectedProducts.forEach(p => {
-                prompt += `\n### ${p.name}\n`;
-                prompt += `- อายุรับ: ${p.ageRange.min}-${p.ageRange.max} ปี\n`;
-                prompt += `- ความคุ้มครอง: ${p.coverage}\n`;
-                prompt += `- ลิงก์ (ใช้อันนี้เท่านั้น!): ${p.url}\n`;
-                prompt += '- ประโยชน์:\n';
-                p.benefits.forEach(b => {
-                    prompt += `  * ${b}\n`;
+            // CRITICAL: Override with conservative prompt OR Age Ineligible Prompt
+            prompt = '';
+
+            prompt += '=== กฎสำคัญที่สุด (ห้ามละเมิด!) ===\\n';
+            prompt += 'คุณคือแอดมินเพจไทยประกันชีวิต (เพศหญิง) ลงท้ายด้วย ค่ะ\\n\\n';
+
+            prompt += '=== ข้อห้ามเด็ดขาด ===\\n';
+            prompt += '- ห้ามใส่ตัวเลขทุกชนิด (เบี้ย, ทุน, %, อายุ)\\n';
+            prompt += '- ห้ามบอกว่า "สมัครได้" หรือ "สมัครไม่ได้"\\n';
+            prompt += '- ห้ามใช้คำว่า "รับประกัน", "ได้แน่นอน"\\n';
+            prompt += '- ห้ามใช้ภาษาอื่นนอกจากภาษาไทย\\n\\n';
+
+            if (ineligibleProduct) {
+                // --- SPECIAL PROMPT FOR INELIGIBLE AGE ---
+                prompt += `🚨 **สถานการณ์พิเศษ: ลูกค้าอายุ ${userAge} ปี (เกินเกณฑ์ ${ineligibleProduct.name})** 🚨\\n\\n`;
+                prompt += `แผน "${ineligibleProduct.name}" รับประกันที่อายุ ${ineligibleProduct.ageRange.min}-${ineligibleProduct.ageRange.max} ปีเท่านั้น\\n`;
+
+                if (recommendedProduct) {
+                    prompt += `✅ **สิ่งที่คุณต้องทำ:**\\n`;
+                    prompt += `1. แจ้งอย่างสุภาพว่าแผนนี้อาจจะไม่ตรงตามเงื่อนไขอายุ\\n`;
+                    prompt += `2. **แนะนำแผน "${recommendedProduct.name}" แทนทันที**\\n`;
+                    prompt += `3. ให้ลิงก์ของ "${recommendedProduct.name}": ${recommendedProduct.url}\\n\\n`;
+
+                    prompt += `**ตัวอย่างการตอบ:**\\n`;
+                    prompt += `"สำหรับแผน ${ineligibleProduct.name} จะมีเงื่อนไขด้านอายุอยู่นิดนึงค่ะ\\n.\\n`;
+                    prompt += `สำหรับพี่อายุ ${userAge} ปี ขอแนะนำเป็นแผน **${recommendedProduct.name}** แทนนะคะ แผนนี้เหมาะมากเลยค่ะ\\n.\\n`;
+                    prompt += `สนใจดูรายละเอียดตรงนี้ได้เลยค่ะ\\n.\\n`;
+                    prompt += `${recommendedProduct.url}\\n.\\n`;
+                    prompt += `ฝากเบอร์โทรไว้ได้เลยนะคะ เดี๋ยวให้เจ้าหน้าที่ติดต่อกลับไปดูแลค่ะ 😊"\\n\\n`;
+                } else {
+                    // No alternative found
+                    prompt += `✅ **สิ่งที่คุณต้องทำ:**\\n`;
+                    prompt += `1. แจ้งอย่างสุภาพว่าแผนนี้อาจจะไม่ตรงตามเงื่อนไขอายุ\\n`;
+                    prompt += `2. ขอเบอร์โทรเพื่อให้เจ้าหน้าที่ช่วยหาแบบประกันที่เหมาะสมที่สุดให้\\n\\n`;
+                }
+            } else {
+                // --- NORMAL PRODUCT FOCUSED PROMPT ---
+                prompt += '=== โปรดักส์ที่กำลังขาย ===\\n';
+                selectedProducts.forEach(p => {
+                    prompt += `🎯 **${p.name}**\\n`;
+                    prompt += `   - ลิงก์: ${p.url}\\n`;
                 });
-                if (p.deathBenefit) {
-                    prompt += '- ผลประโยชน์กรณีเสียชีวิต:\n';
-                    p.deathBenefit.forEach(b => {
-                        prompt += `  * ${b}\n`;
-                    });
-                }
-                if (p.waitingPeriod) {
-                    prompt += `- ระยะรอคอย: ${p.waitingPeriod}\n`;
-                }
-            });
 
-            prompt += '\n**รูปแบบการตอบ:**\n';
-            prompt += '- เว้นบรรทัดด้วย . (จุด) ระหว่างย่อหน้า\n';
-            prompt += '- ใช้ * สำหรับ bullet points\n';
+                prompt += '\\n=== Template มาตรฐาน (ใช้แบบนี้เท่านั้น) ===\\n';
+                prompt += 'แผนประกันจะพิจารณาตามเงื่อนไขและข้อมูลของแต่ละบุคคลค่ะ\\n';
+                prompt += '.\\n';
+                prompt += 'หากสนใจรับข้อมูลเพิ่มเติมก่อนตัดสินใจ สามารถกดลิงก์นี้ได้เลยค่ะ\\n';
+                prompt += '.\\n';
+                prompt += '(แนบลิงก์ของโปรดักส์)\\n\\n';
+
+                prompt += '=== กรณีอายุเกินเกณฑ์ ===\\n';
+                prompt += 'แผนที่สอบถามจะมีเงื่อนไขด้านอายุค่ะ\\n';
+                prompt += '.\\n';
+                prompt += 'ในกรณีนี้ อาจมีแบบประกันอื่นที่เหมาะสมกว่าให้พิจารณา\\n';
+                prompt += '.\\n';
+                prompt += 'หากสนใจรับข้อมูลทางเลือกเพิ่มเติม สามารถกดลิงก์นี้ได้เลยค่ะ\\n';
+                prompt += '.\\n';
+                prompt += '(แนบลิงก์)\\n\\n';
+            }
+
+            prompt += '=== รูปแบบการตอบ ===\\n';
+            prompt += '- เว้นบรรทัดด้วย . (จุด) ระหว่างย่อหน้า\\n';
             prompt += '- ลงท้ายด้วยการขอเบอร์โทรเสมอ\n';
         }
 
@@ -345,7 +425,7 @@ class AIService {
     // Groq API (Recommended - Fast & Free)
     async callGroq(userMessage, conversationContext) {
         const messages = [
-            { role: 'system', content: this.buildFocusedPrompt() },
+            { role: 'system', content: this.buildFocusedPrompt(userMessage) },
             ...conversationContext.map(msg => ({
                 role: msg.role === 'user' ? 'user' : 'assistant',
                 content: msg.content
@@ -362,9 +442,9 @@ class AIService {
             body: JSON.stringify({
                 model: this.models.groq,
                 messages: messages,
-                temperature: 0.7,
+                temperature: 0.4,
                 max_tokens: 1024,
-                top_p: 0.95
+                top_p: 0.9
             })
         });
 
@@ -383,7 +463,7 @@ class AIService {
 
         messages.push({
             role: 'user',
-            parts: [{ text: this.buildFocusedPrompt() }]
+            parts: [{ text: this.buildFocusedPrompt(userMessage) }]
         });
 
         messages.push({
@@ -411,9 +491,9 @@ class AIService {
             body: JSON.stringify({
                 contents: messages,
                 generationConfig: {
-                    temperature: 0.7,
+                    temperature: 0.4,
                     topK: 40,
-                    topP: 0.95,
+                    topP: 0.9,
                     maxOutputTokens: 1024,
                 }
             })
@@ -445,8 +525,8 @@ class AIService {
                 model: this.models.cohere,
                 message: userMessage,
                 chat_history: chatHistory,
-                preamble: this.buildFocusedPrompt(),
-                temperature: 0.7
+                preamble: this.buildFocusedPrompt(userMessage),
+                temperature: 0.4
             })
         });
 
@@ -462,7 +542,7 @@ class AIService {
     // Hugging Face API (Alternative)
     async callHuggingFace(userMessage, conversationContext) {
         // Build conversation
-        let conversation = this.buildFocusedPrompt() + '\n\n';
+        let conversation = this.buildFocusedPrompt(userMessage) + '\n\n';
         conversationContext.forEach(msg => {
             const role = msg.role === 'user' ? 'User' : 'Assistant';
             conversation += `${role}: ${msg.content}\n\n`;
@@ -479,8 +559,8 @@ class AIService {
                 inputs: conversation,
                 parameters: {
                     max_new_tokens: 1024,
-                    temperature: 0.7,
-                    top_p: 0.95,
+                    temperature: 0.4,
+                    top_p: 0.9,
                     return_full_text: false
                 }
             })
